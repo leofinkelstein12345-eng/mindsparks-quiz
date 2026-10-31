@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MindSparks - Interactive Quiz & Hosting Platform</title>
+
+  <!-- PeerJS for P2P Multiplayer Networking -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap');
+
+    :root {
+      --primary: #46178f;
+      --primary-dark: #2c0b61;
+      --primary-light: #5f27cd;
+      --secondary: #1368ce;
+      --accent-red: #e21b3c;
+      --accent-blue: #1368ce;
+      --accent-yellow: #d89e00;
+      --accent-green: #26890c;
+      --bg-light: #f4f5f9;
+      --card-bg: #ffffff;
+      --text-dark: #222222;
+      --text-muted: #666666;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-dark);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* HEADER / NAVBAR */
+    header {
+      background-color: var(--primary);
+      color: white;
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      z-index: 10;
+    }
+
+    .brand-logo {
+      font-size: 1.8rem;
+      font-weight: 900;
+      letter-spacing: -1px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: pointer;
+    }
+
+    .brand-logo span {
+      color: #ff9f43;
+    }
+
+    header nav {
+      display: flex;
+      gap: 10px;
+    }
+
+    .btn {
+      padding: 0.65rem 1.25rem;
+      border: none;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      text-decoration: none;
+      box-shadow: 0 3px 0 rgba(0,0,0,0.15);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.08);
+    }
+
+    .btn:active {
+      transform: translateY(2px);
+      box-shadow: none;
+    }
+
+    .btn-primary { background-color: var(--secondary); color: white; }
+    .btn-success { background-color: var(--accent-green); color: white; }
+    .btn-danger { background-color: var(--accent-red); color: white; }
+    .btn-warning { background-color: var(--accent-yellow); color: white; }
+    .btn-light { background-color: #ffffff; color: var(--primary); }
+    .btn-dark { background-color: #2b2b2b; color: white; }
+
+    /* LAYOUT CONTAINERS */
+    .main-container {
+      flex: 1;
+      max-width: 1200px;
+      width: 100%;
+      margin: 2rem auto;
+      padding: 0 1rem;
+    }
+
+    .view-section {
+      display: none;
+    }
+
+    .view-section.active {
+      display: block;
+    }
+
+    /* CARDS */
+    .card {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 1.8rem;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+      margin-bottom: 1.5rem;
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.2rem;
+      border-bottom: 2px solid var(--bg-light);
+      padding-bottom: 0.8rem;
+    }
+
+    .card-title {
+      font-size: 1.4rem;
+      font-weight: 800;
+      color: var(--primary);
+    }
+
+    /* LANDING / MODE SELECTOR */
+    .hero-banner {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--primary-light) 100%);
+      color: white;
+      padding: 3rem 2rem;
+      border-radius: 16px;
+      text-align: center;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 25px rgba(70,23,143,0.3);
+    }
+
+    .hero-banner h2 {
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 0.8rem;
+    }
+
+    .hero-banner p {
+      font-size: 1.1rem;
+      opacity: 0.9;
+      max-width: 600px;
+      margin: 0 auto 1.8rem auto;
+    }
+
+    .hero-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1.5rem;
+    }
+
+    /* QUIZ GRID */
+    .quiz-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 1.5rem;
+    }
+
+    .quiz-card {
+      background: white;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      overflow: hidden;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.05);
+      transition: all 0.2s;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .quiz-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.12);
+    }
+
+    .quiz-card-body {
+      padding: 1.3rem;
+      flex: 1;
+    }
+
+    .quiz-card-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      margin-bottom: 0.4rem;
+      color: var(--text-dark);
+    }
+
+    .quiz-card-desc {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 1rem;
+      line-height: 1.4;
+    }
+
+    .quiz-badge {
+      display: inline-block;
+      background: #eef2ff;
+      color: var(--primary);
+      padding: 0.25rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.75rem;
+      font-weight: 800;
+      margin-bottom: 0.8rem;
+    }
+
+    .quiz-card-actions {
+      padding: 1rem 1.3rem;
+      background: #f8fafc;
+      border-top: 1px solid #e2e8f0;
+      display: flex;
+      gap: 8px;
+    }
+
+    /* FORM STYLES */
+    .form-group {
+      margin-bottom: 1.2rem;
+    }
+
+    .form-group label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 0.4rem;
+      font-size: 0.9rem;
+    }
+
+    .form-control {
+      width: 100%;
+      padding: 0.8rem;
+      border: 2px solid #e2e8f0;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      transition: border 0.2s;
+    }
+
+    .form-control:focus {
+      outline: none;
+      border-color: var(--secondary);
+    }
+
+    .row {
+      display: flex;
+      gap: 1rem;
+    }
+
+    .col { flex: 1; }
+
+    /* QUESTION BUILDER IN CREATOR */
+    .question-builder-card {
+      background: #f8fafc;
+      border: 2px dashed #cbd5e1;
+      border-radius: 12px;
+      padding: 1.2rem;
+      margin-bottom: 1.2rem;
+      position: relative;
+    }
+
+    .question-builder-card .remove-q-btn {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+
+    .answers-grid-editor {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.8rem;
+      margin-top: 0.8rem;
+    }
+
+    .answer-input-group {
+      display: flex;
+      align-items: center;
+      background: white;
+      border: 2px solid #cbd5e1;
+      border-radius: 8px;
+      padding-left: 0.6rem;
+    }
+
+    .answer-input-group.red { border-left: 8px solid var(--accent-red); }
+    .answer-input-group.blue { border-left: 8px solid var(--accent-blue); }
+    .answer-input-group.yellow { border-left: 8px solid var(--accent-yellow); }
+    .answer-input-group.green { border-left: 8px solid var(--accent-green); }
+
+    .answer-input-group input[type="text"] {
+      border: none;
+      padding: 0.7rem;
+      width: 100%;
+    }
+
+    /* HOST LOBBY & GAME */
+    .pin-display {
+      background: white;
+      padding: 1.5rem 3rem;
+      border-radius: 16px;
+      box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+      display: inline-block;
+      margin: 1.5rem 0;
+    }
+
+    .pin-code {
+      font-size: 4rem;
+      font-weight: 900;
+      letter-spacing: 6px;
+      color: var(--primary);
+    }
+
+    .player-pill-grid {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 1.5rem;
+    }
+
+    .player-pill {
+      background: white;
+      padding: 0.6rem 1.2rem;
+      border-radius: 30px;
+      font-weight: 800;
+      font-size: 1.1rem;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+      animation: popIn 0.3s ease;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.5); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .game-host-screen {
+      text-align: center;
+      max-width: 900px;
+      margin: 0 auto;
+    }
+
+    .timer-circle {
+      width: 70px;
+      height: 70px;
+      border-radius: 50%;
+      background: var(--primary);
+      color: white;
+      font-size: 1.8rem;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 12px rgba(70,23,143,0.3);
+    }
+
+    .game-question-box {
+      background: white;
+      padding: 2.5rem 2rem;
+      border-radius: 16px;
+      box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 1.5rem 0;
+      min-height: 140px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .answers-display-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+    }
+
+    .answer-card-display {
+      padding: 1.8rem 1.2rem;
+      border-radius: 12px;
+      color: white;
+      font-size: 1.3rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 5px 0 rgba(0,0,0,0.2);
+    }
+
+    .answer-card-red { background-color: var(--accent-red); }
+    .answer-card-blue { background-color: var(--accent-blue); }
+    .answer-card-yellow { background-color: var(--accent-yellow); }
+    .answer-card-green { background-color: var(--accent-green); }
+
+    /* PLAYER CONTROL BOARD */
+    .player-join-box {
+      max-width: 420px;
+      margin: 3rem auto;
+      text-align: center;
+    }
+
+    .player-game-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.2rem;
+      height: 60vh;
+      margin-top: 1.5rem;
+    }
+
+    .player-btn {
+      border: none;
+      border-radius: 14px;
+      color: white;
+      font-size: 3rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 6px 0 rgba(0,0,0,0.25);
+      transition: transform 0.1s;
+    }
+
+    .player-btn:active {
+      transform: translateY(4px);
+      box-shadow: none;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- HEADER NAVBAR -->
+  <header>
+    <div class="brand-logo" onclick="showView('landing-view')">
+      ⚡ MindSparks
+    </div>
+    <nav>
+      <button class="btn btn-light" onclick="showView('db-view')">📚 Quiz Library</button>
+      <button class="btn btn-warning" onclick="showView('join-view')">📱 Join Game</button>
+      <button class="btn btn-success" onclick="openCreator()">➕ Create Quiz</button>
+    </nav>
+  </header>
+
+  <div class="main-container">
+
+    <!-- 1. LANDING PAGE -->
+    <section id="landing-view" class="view-section active">
+      <div class="hero-banner">
+        <h2>Spark Live Trivia Games!</h2>
+        <p>Host multiplayer quizzes live on screen or join from any device with a 6-digit Game PIN.</p>
+        <div class="hero-buttons">
+          <button class="btn btn-warning" style="font-size: 1.2rem; padding: 0.8rem 2rem;" onclick="showView('join-view')">📱 Join a Game</button>
+          <button class="btn btn-light" style="font-size: 1.2rem; padding: 0.8rem 2rem;" onclick="showView('db-view')">🎙️ Host a Game</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. QUIZ DATABASE VIEW -->
+    <section id="db-view" class="view-section">
+      <div class="card">
+        <div class="card-header">
+          <div>
+            <h2 class="card-title">Quiz Library</h2>
+            <p style="font-size: 0.85rem; color: var(--text-muted);">Manage your quizzes, export JSON backups, or start hosting.</p>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button class="btn btn-dark" onclick="exportDatabase()">💾 Export DB</button>
+            <button class="btn btn-light" style="border:1px solid #ccc;" onclick="document.getElementById('importFile').click()">📂 Import DB</button>
+            <input type="file" id="importFile" style="display:none;" accept=".json" onchange="importDatabase(event)"/>
+          </div>
+        </div>
+
+        <div id="quiz-grid" class="quiz-grid"></div>
+      </div>
+    </section>
+
+    <!-- 3. QUIZ CREATOR / EDITOR VIEW -->
+    <section id="creator-view" class="view-section">
+      <div class="card">
+        <div class="card-header">
+          <h2 class="card-title" id="creator-title-text">Create New Quiz</h2>
+          <button class="btn btn-dark" onclick="showView('db-view')">Cancel</button>
+        </div>
+
+        <form id="quiz-form" onsubmit="saveQuiz(event)">
+          <input type="hidden" id="edit-quiz-id" value="" />
+
+          <div class="row">
+            <div class="col form-group">
+              <label for="quiz-title">Quiz Title</label>
+              <input type="text" id="quiz-title" class="form-control" placeholder="e.g. Orwell's 1984 Master Quiz" required />
+            </div>
+            <div class="col form-group">
+              <label for="quiz-category">Category</label>
+              <input type="text" id="quiz-category" class="form-control" placeholder="e.g. Literature, History" value="General" required />
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="quiz-desc">Description</label>
+            <textarea id="quiz-desc" class="form-control" rows="2" placeholder="Brief summary of what this quiz covers..."></textarea>
+          </div>
+
+          <hr style="margin: 1.5rem 0;" />
+
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+            <h3>Questions</h3>
+            <button type="button" class="btn btn-primary" onclick="addQuestionBuilder()">+ Add Question</button>
+          </div>
+
+          <div id="questions-container"></div>
+
+          <div style="margin-top: 1.5rem; text-align: right;">
+            <button type="submit" class="btn btn-success" style="font-size: 1.1rem; padding: 0.8rem 2rem;">Save Quiz to Library</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 4. HOST LOBBY VIEW -->
+    <section id="host-lobby-view" class="view-section">
+      <div class="card" style="text-align: center;">
+        <h2 style="font-weight: 800; color: var(--text-dark);">Join with Game PIN:</h2>
+        <div class="pin-display">
+          <div class="pin-code" id="lobby-pin">------</div>
+        </div>
+        <p style="color: var(--text-muted); font-weight: 700;">Waiting for players to connect...</p>
+
+        <div class="player-pill-grid" id="lobby-players-grid"></div>
+
+        <div style="margin-top: 2.5rem;">
+          <button class="btn btn-success" style="font-size: 1.3rem; padding: 1rem 3rem;" onclick="startHostGame()">Start Game ➔</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5. HOST GAME VIEW -->
+    <section id="host-game-view" class="view-section">
+      <div class="game-host-screen">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <button class="btn btn-dark" onclick="showView('db-view')">End Game</button>
+          <div class="timer-circle" id="host-timer">20</div>
+        </div>
+
+        <div class="game-question-box" id="host-question-text">
+          Question loading...
+        </div>
+
+        <div class="answers-display-grid" id="host-answers-container"></div>
+
+        <div id="host-results-container" style="display: none; margin-top: 2rem;">
+          <h3 style="font-size: 1.8rem; font-weight: 900; margin-bottom: 1rem;">Time's Up!</h3>
+          <button class="btn btn-primary" style="font-size: 1.2rem; padding: 0.8rem 2.5rem;" onclick="nextHostQuestion()">Next Question ➔</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. PLAYER JOIN VIEW -->
+    <section id="join-view" class="view-section">
+      <div class="card player-join-box">
+        <h2 style="font-weight: 900; color: var(--primary); margin-bottom: 1.5rem;">Join MindSparks Game</h2>
+        <div class="form-group">
+          <label>Game PIN</label>
+          <input type="text" id="join-pin" class="form-control" style="text-align: center; font-size: 1.5rem; font-weight: 800; letter-spacing: 2px;" placeholder="e.g. 123456" maxlength="6"/>
+        </div>
+        <div class="form-group">
+          <label>Nickname</label>
+          <input type="text" id="join-nickname" class="form-control" style="text-align: center; font-size: 1.1rem; font-weight: 700;" placeholder="Your Name" maxlength="15"/>
+        </div>
+        <button class="btn btn-warning" style="width: 100%; font-size: 1.2rem; padding: 0.9rem; margin-top: 1rem;" onclick="joinGameAsPlayer()">Enter Game</button>
+      </div>
+    </section>
+
+    <!-- 7. PLAYER GAME CONTROLLER VIEW -->
+    <section id="player-game-view" class="view-section">
+      <div class="card" style="text-align: center;">
+        <h3 id="player-status-title" style="font-weight: 800; color: var(--primary);">You're In! See the host screen.</h3>
+        <p id="player-score-display" style="font-weight: 700; color: var(--text-muted); margin-top: 0.4rem;">Score: 0</p>
+        
+        <div class="player-game-grid" id="player-buttons-grid" style="display: none;">
+          <button class="player-btn answer-card-red" onclick="sendPlayerAnswer(0)">▲</button>
+          <button class="player-btn answer-card-blue" onclick="sendPlayerAnswer(1)">◆</button>
+          <button class="player-btn answer-card-yellow" onclick="sendPlayerAnswer(2)">●</button>
+          <button class="player-btn answer-card-green" onclick="sendPlayerAnswer(3)">■</button>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <script>
+    /* ==========================================================================
+       1. INITIALIZATION & DEFAULT DATABASE (1984 PRELOADED)
+       ========================================================================== */
+    const DEFAULT_DATABASE = [
+      {
+        id: "1984-master-quiz",
+        title: "George Orwell's 1984 Master Quiz",
+        category: "Literature",
+        description: "Test your comprehension of dystopian Oceania, Big Brother, Thoughtspeak, and Winston Smith's struggle.",
+        questions: [
+          {
+            question: "What are the three official slogans of the Party in 1984?",
+            timeLimit: 20,
+            options: [
+              "War is Peace, Freedom is Slavery, Ignorance is Strength",
+              "Obey Big Brother, Trust the Party, Reject Treason",
+              "Strength through Unity, Faith through Order, Peace through War",
+              "Freedom is Power, Knowledge is Truth, War is Eternal"
+            ],
+            correctIndex: 0
+          },
+          {
+            question: "Which Ministry is responsible for news, entertainment, education, and fine arts?",
+            timeLimit: 20,
+            options: [
+              "Ministry of Peace (Minipax)",
+              "Ministry of Truth (Minitrue)",
+              "Ministry of Love (Miniluv)",
+              "Ministry of Plenty (Miniplenty)"
+            ],
+            correctIndex: 1
+          },
+          {
+            question: "What is the primary function of Newspeak in Oceania?",
+            timeLimit: 20,
+            options: [
+              "To improve diplomatic relations with Eastasia",
+              "To make political propaganda sound poetic",
+              "To narrow the range of thought and eradicate thoughtcrime",
+              "To allow secret military codes between Party officials"
+            ],
+            correctIndex: 2
+          },
+          {
+            question: "What worst fear awaits Winston in Room 101?",
+            timeLimit: 15,
+            options: [
+              "Drowning",
+              "Rats",
+              "Fire",
+              "Heights"
+            ],
+            correctIndex: 1
+          },
+          {
+            question: "Who is the alleged leader of the anti-Party underground opposition called 'The Brotherhood'?",
+            timeLimit: 20,
+            options: [
+              "Emmanuel Goldstein",
+              "O'Brien",
+              "Syme",
+              "Mr. Charrington"
+            ],
+            correctIndex: 0
+          }
+        ]
+      }
+    ];
+
+    function getDatabase() {
+      const data = localStorage.getItem('quiz_db');
+      if (!data) {
+        localStorage.setItem('quiz_db', JSON.stringify(DEFAULT_DATABASE));
+        return DEFAULT_DATABASE;
+      }
+      return JSON.parse(data);
+    }
+
+    function saveDatabase(db) {
+      localStorage.setItem('quiz_db', JSON.stringify(db));
+      renderQuizDatabase();
+    }
+
+    /* ==========================================================================
+       2. VIEW NAVIGATION & DATABASE RENDERING
+       ========================================================================== */
+    function showView(viewId) {
+      document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+
+      if (viewId === 'db-view') renderQuizDatabase();
+    }
+
+    function renderQuizDatabase() {
+      const db = getDatabase();
+      const grid = document.getElementById('quiz-grid');
+      grid.innerHTML = '';
+
+      if (db.length === 0) {
+        grid.innerHTML = '<p style="grid-column: 1/-1; text-align: center; color: #888;">No quizzes found in library. Click "Create Quiz" to make one!</p>';
+        return;
+      }
+
+      db.forEach(quiz => {
+        const card = document.createElement('div');
+        card.className = 'quiz-card';
+        card.innerHTML = `
+          <div class="quiz-card-body">
+            <span class="quiz-badge">${escapeHtml(quiz.category)}</span>
+            <div class="quiz-card-title">${escapeHtml(quiz.title)}</div>
+            <div class="quiz-card-desc">${escapeHtml(quiz.description || 'No description provided.')}</div>
+            <small style="color: #777; font-weight:700;">❓ ${quiz.questions.length} Question(s)</small>
+          </div>
+          <div class="quiz-card-actions">
+            <button class="btn btn-success" style="flex: 1;" onclick="hostGame('${quiz.id}')">🎙️ Host Live</button>
+            <button class="btn btn-warning" onclick="editQuiz('${quiz.id}')">✏️ Edit</button>
+            <button class="btn btn-danger" onclick="deleteQuiz('${quiz.id}')">🗑️</button>
+          </div>
+        `;
+        grid.appendChild(card);
+      });
+    }
+
+    /* ==========================================================================
+       3. QUIZ CREATOR / EDITOR LOGIC
+       ========================================================================== */
+    function openCreator(quizToEdit = null) {
+      const container = document.getElementById('questions-container');
+      container.innerHTML = '';
+
+      if (quizToEdit) {
+        document.getElementById('creator-title-text').innerText = 'Edit Quiz';
+        document.getElementById('edit-quiz-id').value = quizToEdit.id;
+        document.getElementById('quiz-title').value = quizToEdit.title;
+        document.getElementById('quiz-category').value = quizToEdit.category;
+        document.getElementById('quiz-desc').value = quizToEdit.description;
+
+        quizToEdit.questions.forEach(q => addQuestionBuilder(q));
+      } else {
+        document.getElementById('creator-title-text').innerText = 'Create New Quiz';
+        document.getElementById('edit-quiz-id').value = '';
+        document.getElementById('quiz-form').reset();
+        addQuestionBuilder();
+      }
+
+      showView('creator-view');
+    }
+
+    function addQuestionBuilder(data = null) {
+      const container = document.getElementById('questions-container');
+      const qIndex = container.children.length;
+
+      const qCard = document.createElement('div');
+      qCard.className = 'question-builder-card';
+      
+      const qText = data ? data.question : '';
+      const tLimit = data ? data.timeLimit : 20;
+      const opts = data ? data.options : ['', '', '', ''];
+      const correct = data ? data.correctIndex : 0;
+
+      qCard.innerHTML = `
+        <button type="button" class="btn btn-danger remove-q-btn" onclick="this.parentElement.remove()">✕ Remove</button>
+        <div class="row" style="margin-bottom: 0.8rem;">
+          <div class="col" style="flex: 3;">
+            <label>Question ${qIndex + 1}</label>
+            <input type="text" class="form-control q-text" placeholder="Enter question..." value="${escapeHtml(qText)}" required />
+          </div>
+          <div class="col" style="flex: 1;">
+            <label>Time Limit</label>
+            <select class="form-control q-time">
+              <option value="10" ${tLimit == 10 ? 'selected':''}>10 Seconds</option>
+              <option value="15" ${tLimit == 15 ? 'selected':''}>15 Seconds</option>
+              <option value="20" ${tLimit == 20 ? 'selected':''}>20 Seconds</option>
+              <option value="30" ${tLimit == 30 ? 'selected':''}>30 Seconds</option>
+            </select>
+          </div>
+        </div>
+
+        <label style="font-size: 0.85rem; font-weight:700;">Answers (Select radio button for Correct Answer):</label>
+        <div class="answers-grid-editor">
+          <div class="answer-input-group red">
+            <input type="radio" name="correct-${qIndex}-${Date.now()}" value="0" ${correct == 0 ? 'checked':''} required />
+            <input type="text" class="q-opt-0" placeholder="Option 1 (Red)" value="${escapeHtml(opts[0] || '')}" required />
+          </div>
+          <div class="answer-input-group blue">
+            <input type="radio" name="correct-${qIndex}-${Date.now()}" value="1" ${correct == 1 ? 'checked':''}>
+            <input type="text" class="q-opt-1" placeholder="Option 2 (Blue)" value="${escapeHtml(opts[1] || '')}" required />
+          </div>
+          <div class="answer-input-group yellow">
+            <input type="radio" name="correct-${qIndex}-${Date.now()}" value="2" ${correct == 2 ? 'checked':''}>
+            <input type="text" class="q-opt-2" placeholder="Option 3 (Yellow)" value="${escapeHtml(opts[2] || '')}" required />
+          </div>
+          <div class="answer-input-group green">
+            <input type="radio" name="correct-${qIndex}-${Date.now()}" value="3" ${correct == 3 ? 'checked':''}>
+            <input type="text" class="q-opt-3" placeholder="Option 4 (Green)" value="${escapeHtml(opts[3] || '')}" required />
+          </div>
+        </div>
+      `;
+
+      container.appendChild(qCard);
+    }
+
+    function saveQuiz(e) {
+      e.preventDefault();
+
+      const id = document.getElementById('edit-quiz-id').value || 'quiz_' + Date.now();
+      const title = document.getElementById('quiz-title').value;
+      const category = document.getElementById('quiz-category').value;
+      const description = document.getElementById('quiz-desc').value;
+
+      const qCards = document.querySelectorAll('.question-builder-card');
+      if (qCards.length === 0) {
+        alert("Please add at least one question!");
+        return;
+      }
+
+      const questions = [];
+      qCards.forEach(card => {
+        questions.push({
+          question: card.querySelector('.q-text').value,
+          timeLimit: parseInt(card.querySelector('.q-time').value),
+          options: [
+            card.querySelector('.q-opt-0').value,
+            card.querySelector('.q-opt-1').value,
+            card.querySelector('.q-opt-2').value,
+            card.querySelector('.q-opt-3').value
+          ],
+          correctIndex: parseInt(card.querySelector('input[type="radio"]:checked').value)
+        });
+      });
+
+      const db = getDatabase();
+      const existingIdx = db.findIndex(q => q.id === id);
+
+      const quizObject = { id, title, category, description, questions };
+
+      if (existingIdx >= 0) db[existingIdx] = quizObject;
+      else db.push(quizObject);
+
+      saveDatabase(db);
+      showView('db-view');
+    }
+
+    function editQuiz(id) {
+      const quiz = getDatabase().find(q => q.id === id);
+      if (quiz) openCreator(quiz);
+    }
+
+    function deleteQuiz(id) {
+      if (confirm("Delete this quiz?")) {
+        saveDatabase(getDatabase().filter(q => q.id !== id));
+      }
+    }
+
+    /* JSON IMPORT/EXPORT */
+    function exportDatabase() {
+      const blob = new Blob([JSON.stringify(getDatabase(), null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `MindSparks_Quiz_Backup_${Date.now()}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+    }
+
+    function importDatabase(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        try {
+          const importedData = JSON.parse(e.target.result);
+          if (Array.isArray(importedData)) {
+            saveDatabase(importedData);
+            alert("Database imported successfully!");
+          }
+        } catch (err) {
+          alert("Error importing JSON file.");
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    /* ==========================================================================
+       4. REAL-TIME MULTIPLAYER NETWORKING (PEERJS)
+       ========================================================================== */
+    let peer = null;
+    let hostConnections = [];
+    let playerConn = null;
+
+    let hostQuiz = null;
+    let currentHostQIndex = 0;
+    let hostTimerInterval = null;
+    let hostTimeRemaining = 0;
+    let connectedPlayers = [];
+
+    // HOST GAME SETUP
+    function hostGame(quizId) {
+      hostQuiz = getDatabase().find(q => q.id === quizId);
+      if (!hostQuiz || hostQuiz.questions.length === 0) {
+        alert("Cannot host an empty quiz.");
+        return;
+      }
+
+      const gamePin = Math.floor(100000 + Math.random() * 900000).toString();
+      document.getElementById('lobby-pin').innerText = gamePin;
+
+      peer = new Peer('mindsparks-' + gamePin);
+
+      peer.on('open', () => {
+        showView('host-lobby-view');
+      });
+
+      peer.on('connection', (conn) => {
+        conn.on('data', (data) => {
+          if (data.type === 'JOIN') {
+            connectedPlayers.push({ id: conn.peer, name: data.nickname, score: 0, conn: conn });
+            hostConnections.push(conn);
+            updateLobbyUI();
+            conn.send({ type: 'JOINED_SUCCESS' });
+          } else if (data.type === 'ANSWER') {
+            handlePlayerAnswerReceived(conn.peer, data.answerIndex);
+          }
+        });
+      });
+
+      peer.on('error', (err) => {
+        console.error("PeerJS Error:", err);
+      });
+    }
+
+    function updateLobbyUI() {
+      const grid = document.getElementById('lobby-players-grid');
+      grid.innerHTML = '';
+      connectedPlayers.forEach(p => {
+        const pill = document.createElement('div');
+        pill.className = 'player-pill';
+        pill.innerText = p.name;
+        grid.appendChild(pill);
+      });
+    }
+
+    function startHostGame() {
+      if (connectedPlayers.length === 0) {
+        if (!confirm("No players connected yet! Host in solo preview mode?")) return;
+      }
+      currentHostQIndex = 0;
+      showView('host-game-view');
+      loadHostQuestion();
+    }
+
+    function loadHostQuestion() {
+      clearInterval(hostTimerInterval);
+      document.getElementById('host-results-container').style.display = 'none';
+
+      const q = hostQuiz.questions[currentHostQIndex];
+      hostTimeRemaining = q.timeLimit;
+      document.getElementById('host-timer').innerText = hostTimeRemaining;
+      document.getElementById('host-question-text').innerText = `${currentHostQIndex + 1}. ${q.question}`;
+
+      const colors = ['red', 'blue', 'yellow', 'green'];
+      const shapes = ['▲', '◆', '●', '■'];
+      const container = document.getElementById('host-answers-container');
+      container.innerHTML = '';
+
+      q.options.forEach((opt, idx) => {
+        const card = document.createElement('div');
+        card.className = `answer-card-display answer-card-${colors[idx]}`;
+        card.innerHTML = `<span>${shapes[idx]}</span> ${escapeHtml(opt)}`;
+        container.appendChild(card);
+      });
+
+      // Broadcast new question to players
+      broadcastToPlayers({ type: 'NEW_QUESTION' });
+
+      // Start Countdown
+      hostTimerInterval = setInterval(() => {
+        hostTimeRemaining--;
+        document.getElementById('host-timer').innerText = hostTimeRemaining;
+        if (hostTimeRemaining <= 0) {
+          clearInterval(hostTimerInterval);
+          endHostQuestion();
+        }
+      }, 1000);
+    }
+
+    function handlePlayerAnswerReceived(peerId, answerIdx) {
+      const player = connectedPlayers.find(p => p.id === peerId);
+      if (!player) return;
+
+      const q = hostQuiz.questions[currentHostQIndex];
+      if (answerIdx === q.correctIndex) {
+        const points = 500 + Math.round((hostTimeRemaining / q.timeLimit) * 500);
+        player.score += points;
+      }
+    }
+
+    function endHostQuestion() {
+      document.getElementById('host-results-container').style.display = 'block';
+      broadcastToPlayers({ type: 'QUESTION_ENDED' });
+    }
+
+    function nextHostQuestion() {
+      currentHostQIndex++;
+      if (currentHostQIndex < hostQuiz.questions.length) {
+        loadHostQuestion();
+      } else {
+        alert("Quiz Finished!");
+        showView('db-view');
+      }
+    }
+
+    function broadcastToPlayers(msg) {
+      hostConnections.forEach(conn => conn.send(msg));
+    }
+
+    // PLAYER JOIN LOGIC
+    function joinGameAsPlayer() {
+      const pin = document.getElementById('join-pin').value.trim();
+      const nickname = document.getElementById('join-nickname').value.trim();
+
+      if (!pin || !nickname) {
+        alert("Please enter a Game PIN and Nickname.");
+        return;
+      }
+
+      peer = new Peer();
+      peer.on('open', () => {
+        playerConn = peer.connect('mindsparks-' + pin);
+
+        playerConn.on('open', () => {
+          playerConn.send({ type: 'JOIN', nickname: nickname });
+        });
+
+        playerConn.on('data', (data) => {
+          if (data.type === 'JOINED_SUCCESS') {
+            showView('player-game-view');
+          } else if (data.type === 'NEW_QUESTION') {
+            document.getElementById('player-status-title').innerText = "Choose your answer!";
+            document.getElementById('player-buttons-grid').style.display = 'grid';
+          } else if (data.type === 'QUESTION_ENDED') {
+            document.getElementById('player-status-title').innerText = "Time's Up! Look at the Host screen.";
+            document.getElementById('player-buttons-grid').style.display = 'none';
+          }
+        });
+      });
+    }
+
+    function sendPlayerAnswer(index) {
+      if (playerConn) {
+        playerConn.send({ type: 'ANSWER', answerIndex: index });
+        document.getElementById('player-status-title').innerText = "Answer Submitted! Waiting for results...";
+        document.getElementById('player-buttons-grid').style.display = 'none';
+      }
+    }
+
+    /* Helper Utilities */
+    function escapeHtml(str) {
+      return (str || '').replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+    }
+
+    // Initial load
+    renderQuizDatabase();
+  </script>
+</body>
+</html>
+
+
+
